@@ -6,6 +6,8 @@ library(here)
 library(readxl)
 library(stringr)
 library(dplyr)
+library(ggplot2)
+library(knitr)
 
 #Load these libraries.Also load in the data we will be using, in this case it will be 4 games for Philly.
 
@@ -66,8 +68,64 @@ player_scored <-  goals_small %>%
     arrange(desc(goals))
 View(player_scored)
 
-
+##Mutate
+#Lets create a new data frame with the goal variable in mind. This column will either give a 1, if the event type is a GOAL, or a 0, if it is anything else.
   
 goal_var <- phi_tut_data %>%
   mutate(goal = ifelse(event_type == "GOAL", 1, 0))
-view(goal_var)
+View(goal_var)
+
+#Check the variable creation worked.
+
+sum(goal_var$goal)
+
+#OR 
+
+count(goal_var, event_type)
+
+##Group & Summarize
+#what if we’re curious as to which teams scored those goals in which games? To do that, we can use the powerful combination of the group_by() and the summarize() functions. Group_by() allows you to section your data based on one or more variables, and summarize() can apply certain functions to each of those groups separately.
+#Use Group_by() and summarize() to find total goals/game
+
+goals_per_game <- goal_var %>%
+    group_by(game_id) %>%
+    summarize(toal_goals = sum(goal))
+View(goals_per_game)
+
+#If we wanted to see which teams scored the goals in the games we can add event_team to our group_by() function:
+
+goals_per_game <- goal_var %>%
+    group_by(game_id, event_team) %>%
+    summarize(toal_goals = sum(goal))
+View(goals_per_game)
+
+#What do we do about those NAs? By adding a filter() and nesting the !is.na inside of it we can keep just the observations that do not have NA.
+
+goals_by_game_team <- goal_var %>%
+   filter(!is.na(event_team)) %>%
+   group_by(game_id, event_team) %>%
+   summarize(goals = sum(goal))
+View(goals_by_game_team)
+    
+#We can add the arrange() function for sorting
+
+goals_by_game_team <- goals_by_game_team %>%
+   arrange(desc(goals))
+View(goals_by_game_team)
+
+#Now, let's make a chart!
+
+ggplot(data = phi_tut_data) + 
+geom_bar(aes(x = event_zone))
+
+#Lets add some color to the chart!
+
+ggplot(data = phi_tut_data) + 
+       geom_bar(aes(x = event_zone, fill = event_zone))
+
+#Let's label the Y axis now:
+
+ggplot(data = phi_tut_data) + 
+       geom_bar(aes(x = event_zone, fill = event_zone)) + 
+       labs(y = "Number of events")
+
